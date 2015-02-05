@@ -59,22 +59,6 @@
 #endif
 
 /**
- * This specification is used by some error reporting functions like in the Logger class.
- * The default can be overriden by defining the macro UAVCAN_NOEXCEPT explicitly, e.g. via compiler options.
- */
-#ifndef UAVCAN_NOEXCEPT
-# if UAVCAN_EXCEPTIONS
-#  if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-#   define UAVCAN_NOEXCEPT noexcept
-#  else
-#   define UAVCAN_NOEXCEPT throw()
-#  endif
-# else
-#  define UAVCAN_NOEXCEPT
-# endif
-#endif
-
-/**
  * Struct layout control.
  * Set UAVCAN_PACK_STRUCTS=1 and define UAVCAN_PACKED_BEGIN and UAVCAN_PACKED_END to reduce memory usage.
  * THIS MAY BREAK THE CODE.
@@ -211,4 +195,26 @@ static const unsigned FloatComparisonEpsilonMult = UAVCAN_FLOAT_COMPARISON_EPSIL
 static const unsigned FloatComparisonEpsilonMult = 10;
 #endif
 
+/////////// Ilia
+#ifdef CAN_ACCEPTANCE_FILTER_CONFIGURATOR_BUFFER_SIZE
+/// Explicitly specified by the user.
+static const unsigned CanAcceptanceFilterConfiguratorBufferSize = CAN_ACCEPTANCE_FILTER_CONFIGURATOR_BUFFER_SIZE;
+#else
+/// Safe default that should be OK for any platform.
+static const unsigned CanAcceptanceFilterConfiguratorBufferSize = 32;
+#endif
+
+#ifdef DEFAULT_FILTER_MASK
+static const unsigned DefaultFilterMask = DEFAULT_FILTER_MASK;
+#else
+static const unsigned DefaultFilterMask = 0x1ffe0000;
+#endif
+
 }
+
+
+
+
+
+
+
