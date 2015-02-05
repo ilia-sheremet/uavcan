@@ -15,9 +15,9 @@
  * This definition contains the integer year number after which the standard was named:
  *  - 2003 for C++03
  *  - 2011 for C++11
- * 
+ *
  * This config automatically sets according to the actual C++ standard used by the compiler.
- * 
+ *
  * In C++03 mode the library has almost zero dependency on the C++ standard library, which allows
  * to use it on platforms with a very limited C++ support. On the other hand, C++11 mode requires
  * many parts of the standard library (e.g. <functional>), thus the user might want to force older
@@ -38,15 +38,39 @@
 #endif
 
 /**
+ * This macro enables built-in runtime checks and debug output via printf().
+ * Should be used only for library development.
+ */
+#ifndef UAVCAN_DEBUG
+# define UAVCAN_DEBUG 0
+#endif
+
+/**
  * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
  * Autodetection is not expected to work with all compilers, so it's safer to define it explicitly.
  * If the autodetection fails, exceptions will be disabled by default.
  */
 #ifndef UAVCAN_EXCEPTIONS
-# if __EXCEPTIONS || _HAS_EXCEPTIONS
+# if defined(__EXCEPTIONS) || defined(_HAS_EXCEPTIONS)
 #  define UAVCAN_EXCEPTIONS  1
 # else
 #  define UAVCAN_EXCEPTIONS  0
+# endif
+#endif
+
+/**
+ * This specification is used by some error reporting functions like in the Logger class.
+ * The default can be overriden by defining the macro UAVCAN_NOEXCEPT explicitly, e.g. via compiler options.
+ */
+#ifndef UAVCAN_NOEXCEPT
+# if UAVCAN_EXCEPTIONS
+#  if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+#   define UAVCAN_NOEXCEPT noexcept
+#  else
+#   define UAVCAN_NOEXCEPT throw()
+#  endif
+# else
+#  define UAVCAN_NOEXCEPT
 # endif
 #endif
 
@@ -89,7 +113,7 @@
  */
 #ifndef UAVCAN_TOSTRING
 // Objective is to make sure that we're NOT on a resource constrained platform
-# if __linux__ || __linux || __APPLE__ || _WIN64 || _WIN32
+# if defined(__linux__) || defined(__linux) || defined(__APPLE__) || defined(_WIN64) || defined(_WIN32)
 #  define UAVCAN_TOSTRING 1
 # else
 #  define UAVCAN_TOSTRING 0
@@ -116,6 +140,9 @@
  * Disabled completely if UAVCAN_NO_ASSERTIONS is defined.
  */
 #ifndef UAVCAN_ASSERT
+# ifndef UAVCAN_NO_ASSERTIONS
+#  define UAVCAN_NO_ASSERTIONS 0
+# endif
 # if UAVCAN_NO_ASSERTIONS
 #  define UAVCAN_ASSERT(x)
 # else
@@ -125,7 +152,6 @@
 
 namespace uavcan
 {
-
 /**
  * Memory pool block size.
  *
@@ -140,7 +166,7 @@ namespace uavcan
  * Note that the pool block size shall be aligned at biggest alignment of the target platform (detected and
  * checked automatically at compile time).
  */
-#if UAVCAN_MEM_POOL_BLOCK_SIZE
+#ifdef UAVCAN_MEM_POOL_BLOCK_SIZE
 /// Explicitly specified by the user.
 static const unsigned MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE;
 #elif defined(__BIGGEST_ALIGNMENT__) && (__BIGGEST_ALIGNMENT__ <= 8)
@@ -173,4 +199,38 @@ struct UAVCAN_EXPORT IsDynamicallyAllocatable
     }
 };
 
+/**
+ * Float comparison precision.
+ * For details refer to:
+ *  http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+ *  https://code.google.com/p/googletest/source/browse/trunk/include/gtest/internal/gtest-internal.h
+ */
+#ifdef UAVCAN_FLOAT_COMPARISON_EPSILON_MULT
+static const unsigned FloatComparisonEpsilonMult = UAVCAN_FLOAT_COMPARISON_EPSILON_MULT;
+#else
+static const unsigned FloatComparisonEpsilonMult = 10;
+#endif
+
+/////////// Ilia
+#ifdef CAN_ACCEPTANCE_FILTER_CONFIGURATOR_BUFFER_SIZE
+/// Explicitly specified by the user.
+static const unsigned CanAcceptanceFilterConfiguratorBufferSize = CAN_ACCEPTANCE_FILTER_CONFIGURATOR_BUFFER_SIZE;
+#else
+/// Safe default that should be OK for any platform.
+static const unsigned CanAcceptanceFilterConfiguratorBufferSize = 32;
+#endif
+
+#ifdef DEFAULT_FILTER_MASK
+static const unsigned DefaultFilterMask = DEFAULT_FILTER_MASK;
+#else
+static const unsigned DefaultFilterMask = 0x1ffe0000;
+#endif
+
 }
+
+
+
+
+
+
+
