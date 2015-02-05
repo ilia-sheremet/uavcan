@@ -2,11 +2,17 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+# pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 #include <gtest/gtest.h>
 #include <uavcan/transport/transfer_buffer.hpp>
+#include <limits>
 #include <root_ns_a/EmptyService.hpp>
 #include <root_ns_a/EmptyMessage.hpp>
 #include <root_ns_a/NestedMessage.hpp>
+#include <root_ns_a/A.hpp>
 #include <root_ns_a/ReportBackSoldier.hpp>
 #include <root_ns_b/ServiceWithEmptyRequest.hpp>
 #include <root_ns_b/ServiceWithEmptyResponse.hpp>
@@ -73,6 +79,22 @@ TEST(Dsdl, Operators)
         ASSERT_FALSE(c == d);
         ASSERT_TRUE(c != d);
     }
+}
+
+
+TEST(Dsdl, CloseComparison)
+{
+    root_ns_a::A first, second;
+
+    ASSERT_TRUE(first == second);
+
+    first.vector[1].vector[1] = std::numeric_limits<double>::epsilon();
+    ASSERT_TRUE(first.isClose(second));       // Still close
+    ASSERT_FALSE(first == second);            // But not exactly
+
+    first.vector[1].vector[1] = std::numeric_limits<float>::epsilon();
+    ASSERT_FALSE(first.isClose(second));      // Nope
+    ASSERT_FALSE(first == second);            // Ditto
 }
 
 /*

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan_stm32/build_config.hpp>
 #include <uavcan/driver/system_clock.hpp>
 
 namespace uavcan_stm32
@@ -41,11 +42,11 @@ void adjustUtc(uavcan::UtcDuration adjustment);
  */
 struct UtcSyncParams
 {
-    float offset_p = 0.01;                  ///< PPM per one usec error
-    float rate_i = 0.02;                    ///< PPM per one PPM error for second
-    float rate_error_corner_freq = 0.01;
-    float max_rate_correction_ppm = 300;
-    float lock_thres_rate_ppm = 2.0;
+    float offset_p = 0.01F;                  ///< PPM per one usec error
+    float rate_i = 0.02F;                    ///< PPM per one PPM error for second
+    float rate_error_corner_freq = 0.01F;
+    float max_rate_correction_ppm = 300.0F;
+    float lock_thres_rate_ppm = 2.0F;
     uavcan::UtcDuration lock_thres_offset = uavcan::UtcDuration::fromMSec(4);
     uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10); ///< Min error to jump rather than change rate
 };

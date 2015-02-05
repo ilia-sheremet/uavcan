@@ -91,11 +91,22 @@ struct UAVCAN_EXPORT Select<false, TrueType, FalseType>
 };
 
 /**
+ * Remove reference as in <type_traits>
+ */
+template <typename T> struct RemoveReference      { typedef T Type; };
+template <typename T> struct RemoveReference<T&>  { typedef T Type; };
+#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
+template <typename T> struct RemoveReference<T&&> { typedef T Type; };
+#endif
+
+/**
  * Value types
  */
 template <bool> struct UAVCAN_EXPORT BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
+
+template <int N> struct IntToType { };
 
 /**
  * Relations
@@ -393,6 +404,7 @@ struct UAVCAN_EXPORT NumericTraits<float>
     static float max() { return FLT_MAX; }
     static float min() { return FLT_MIN; }
     static float infinity() { return INFINITY; }
+    static float epsilon() { return FLT_EPSILON; }
 };
 
 /// double
@@ -404,8 +416,10 @@ struct UAVCAN_EXPORT NumericTraits<double>
     static double max() { return DBL_MAX; }
     static double min() { return DBL_MIN; }
     static double infinity() { return static_cast<double>(INFINITY) * static_cast<double>(INFINITY); }
+    static double epsilon() { return DBL_EPSILON; }
 };
 
+#if defined(LDBL_MAX) && defined(LDBL_MIN) && defined(LDBL_EPSILON)
 /// long double
 template <>
 struct UAVCAN_EXPORT NumericTraits<long double>
@@ -415,6 +429,59 @@ struct UAVCAN_EXPORT NumericTraits<long double>
     static long double max() { return LDBL_MAX; }
     static long double min() { return LDBL_MIN; }
     static long double infinity() { return static_cast<long double>(INFINITY) * static_cast<long double>(INFINITY); }
+    static long double epsilon() { return LDBL_EPSILON; }
 };
+#endif
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# undef isnan
+# undef isinf
+# undef signbit
+#endif
+
+/**
+ * Replacement for std::isnan().
+ * Note that direct float comparison (==, !=) is intentionally avoided.
+ */
+template <typename T>
+inline bool isNaN(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::isnan(arg);
+#else
+    // coverity[same_on_both_sides : FALSE]
+    // cppcheck-suppress duplicateExpression
+    return !(arg <= arg);
+#endif
+}
+
+/**
+ * Replacement for std::isinf().
+ * Note that direct float comparison (==, !=) is intentionally avoided.
+ */
+template <typename T>
+inline bool isInfinity(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::isinf(arg);
+#else
+    return (arg >= NumericTraits<T>::infinity()) || (arg <= -NumericTraits<T>::infinity());
+#endif
+}
+
+/**
+ * Replacement for std::signbit().
+ * Note that direct float comparison (==, !=) is intentionally avoided.
+ */
+template <typename T>
+inline bool getSignBit(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::signbit(arg);
+#else
+    // coverity[divide_by_zero : FALSE]
+    return arg < T(0) || (((arg <= T(0)) && (arg >= T(0))) && (T(1) / arg < T(0)));
+#endif
+}
 
 }

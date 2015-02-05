@@ -20,7 +20,7 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
     out += " ts_m="   + ts_mono.toString();
     out += " ts_utc=" + ts_utc.toString();
     out += " iface=";
-    out += '0' + iface_index;
+    out += char('0' + iface_index);
     return out;
 }
 #endif
@@ -240,7 +240,7 @@ int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, Monoto
     }
     if (res > 0)
     {
-        counters_[iface_index].frames_tx += res;
+        counters_[iface_index].frames_tx += unsigned(res);
     }
     return res;
 }
@@ -268,7 +268,7 @@ uint8_t CanIOManager::makePendingTxMask() const
     {
         if (!tx_queues_[i]->isEmpty())
         {
-            write_mask |= 1 << i;
+            write_mask |= uint8_t(1 << i);
         }
     }
     return write_mask;
@@ -300,7 +300,7 @@ CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISyste
 
     if (mem_blocks_per_iface == 0)
     {
-        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1) + 1;
+        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1U) + 1U;
     }
     UAVCAN_TRACE("CanIOManager", "Memory blocks per iface: %u, total: %u",
                  unsigned(mem_blocks_per_iface), unsigned(allocator.getNumBlocks()));
@@ -331,7 +331,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                        uint8_t iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
 {
     const uint8_t num_ifaces = getNumIfaces();
-    const uint8_t all_ifaces_mask = (1U << num_ifaces) - 1;
+    const uint8_t all_ifaces_mask = uint8_t((1U << num_ifaces) - 1);
     iface_mask &= all_ifaces_mask;
 
     if (blocking_deadline > tx_deadline)
@@ -375,7 +375,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                         res = sendToIface(i, frame, tx_deadline, flags);
                         if (res > 0)
                         {
-                            iface_mask &= ~(1 << i);              // Mark transmitted
+                            iface_mask &= uint8_t(~(1 << i));     // Mark transmitted
                         }
                     }
                 }
@@ -420,7 +420,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
     {
         CanSelectMasks masks;
         masks.write = makePendingTxMask();
-        masks.read = (1 << num_ifaces) - 1;
+        masks.read = uint8_t((1 << num_ifaces) - 1);
         {
             const int select_res = callSelect(masks, blocking_deadline);
             if (select_res < 0)

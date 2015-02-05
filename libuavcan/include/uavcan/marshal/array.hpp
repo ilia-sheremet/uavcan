@@ -15,6 +15,10 @@
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
 
+#ifndef UAVCAN_CPP_VERSION
+# error UAVCAN_CPP_VERSION
+#endif
+
 #ifndef UAVCAN_EXCEPTIONS
 # error UAVCAN_EXCEPTIONS
 #endif
@@ -32,11 +36,16 @@ enum ArrayMode { ArrayModeStatic, ArrayModeDynamic };
 template <unsigned Size>
 class UAVCAN_EXPORT StaticArrayBase
 {
+protected:
+    typedef IntegerSpec<IntegerBitLen<Size>::Result, SignednessUnsigned, CastModeSaturate> RawSizeType;
+
 public:
     enum { SizeBitLen = 0 };
-    typedef unsigned SizeType;
-    SizeType size()     const { return Size; }
-    SizeType capacity() const { return Size; }
+
+    typedef typename StorageType<RawSizeType>::Type SizeType;
+
+    SizeType size()     const { return SizeType(Size); }
+    SizeType capacity() const { return SizeType(Size); }
 
 protected:
     StaticArrayBase() { }
@@ -44,7 +53,7 @@ protected:
 
     SizeType validateRange(SizeType pos) const
     {
-        if (pos < Size)
+        if (pos < SizeType(Size))
         {
             return pos;
         }
@@ -52,7 +61,7 @@ protected:
         throw std::out_of_range("uavcan::Array");
 #else
         UAVCAN_ASSERT(0);
-        return Size - 1;  // Ha ha
+        return SizeType(Size - 1U);  // Ha ha
 #endif
     }
 };
@@ -83,7 +92,7 @@ protected:
         throw std::out_of_range("uavcan::Array");
 #else
         UAVCAN_ASSERT(0);
-        return (size_ == 0) ? 0 : (size_ - 1);
+        return SizeType((size_ == 0U) ? 0U : (size_ - 1U));
 #endif
     }
 
@@ -148,7 +157,7 @@ private:
     BufferType data_;
 
     template <typename U>
-    typename EnableIf<sizeof(U(0) == U())>::Type initialize(int)
+    typename EnableIf<sizeof(U(0) >= U())>::Type initialize(int)
     {
         if (ArrayMode != ArrayModeDynamic)
         {
@@ -205,10 +214,10 @@ public:
     const ValueType* begin() const { return data_; }
     ValueType* end()               { return data_ + Base::size(); }
     const ValueType* end()   const { return data_ + Base::size(); }
-    ValueType& front()             { return at(0); }
-    const ValueType& front() const { return at(0); }
-    ValueType& back()              { return at(Base::size() - 1); }
-    const ValueType& back()  const { return at(Base::size() - 1); }
+    ValueType& front()             { return at(0U); }
+    const ValueType& front() const { return at(0U); }
+    ValueType& back()              { return at(SizeType(Base::size() - 1U)); }
+    const ValueType& back()  const { return at(SizeType(Base::size() - 1U)); }
 
     /**
      * Performs standard lexicographical compare of the elements.
@@ -405,23 +414,18 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
             {
                 const bool on_diagonal = (index / Width) == (index % Width);
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-                const bool nan = std::isnan(*it);
-#else
-                // coverity[same_on_both_sides : FALSE]
-                const bool nan = (*it) != (*it);
-#endif
+                const bool nan = isNaN(*it);
                 if (!nan)
                 {
                     all_nans = false;
                 }
-                if (!on_diagonal && (*it) != 0)                     // TODO: Proper float comparison
+                if (!on_diagonal && !isCloseToZero(*it))
                 {
                     scalar_matrix = false;  // This matrix cannot be compressed.
                     diagonal_matrix = false;
                     break;
                 }
-                if (on_diagonal && (*it) != (*src_row_major)) // TODO: Proper float comparison
+                if (on_diagonal && !areClose(*it, *src_row_major))
                 {
                     scalar_matrix = false;
                 }
@@ -450,7 +454,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
     }
 
-    template <typename OutputIter>
+    template <typename ScalarType, typename OutputIter>
     void unpackSquareMatrixImpl(OutputIter it) const
     {
         StaticAssert<IsDynamic>::check();
@@ -469,23 +473,26 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 const bool on_diagonal = (index / Width) == (index % Width);
                 if (on_diagonal)
                 {
-                    const SizeType source_index = (this->size() == 1) ? 0 : (index / Width);
-                    *it++ = this->at(source_index);
+                    const SizeType source_index = SizeType((this->size() == 1) ? 0 : (index / Width));
+                    *it++ = ScalarType(this->at(source_index));
                 }
                 else
                 {
-                    *it++ = 0;
+                    *it++ = ScalarType(0);
                 }
             }
         }
         else if (this->size() == MaxSize)
         {
-            (void)::uavcan::copy(this->begin(), this->end(), it);
+            for (SizeType index = 0; index < MaxSize; index++)
+            {
+                *it++ = ScalarType(this->at(index));
+            }
         }
         else
         {
             // coverity[suspicious_sizeof : FALSE]
-            ::uavcan::fill_n(it, MaxSize, 0);
+            ::uavcan::fill_n(it, MaxSize, ScalarType(0));
         }
     }
 
@@ -535,7 +542,7 @@ public:
     void push_back(const ValueType& value)
     {
         Base::grow();
-        Base::at(size() - 1) = value;
+        Base::at(SizeType(size() - 1)) = value;
     }
 
     /**
@@ -545,16 +552,16 @@ public:
     {
         if (new_size > size())
         {
-            unsigned cnt = new_size - size();
-            while (cnt--)
+            SizeType cnt = SizeType(new_size - size());
+            while (cnt-- > 0)
             {
                 push_back(filler);
             }
         }
         else if (new_size < size())
         {
-            unsigned cnt = size() - new_size;
-            while (cnt--)
+            SizeType cnt = SizeType(size() - new_size);
+            while (cnt-- > 0)
             {
                 pop_back();
             }
@@ -575,6 +582,7 @@ public:
 
     /**
      * This operator accepts any container with size() and [].
+     * Members must be comparable via operator ==.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
@@ -595,6 +603,31 @@ public:
     }
 
     /**
+     * This method compares two arrays using @ref areClose(), which ensures proper comparison of
+     * floating point values, or DSDL data structures which contain floating point fields at any depth.
+     * Please refer to the documentation of @ref areClose() to learn more about how it works and how to
+     * define custom fuzzy comparison behavior.
+     * Any container with size() and [] is acceptable.
+     */
+    template <typename R>
+    typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
+    isClose(const R& rhs) const
+    {
+        if (size() != rhs.size())
+        {
+            return false;
+        }
+        for (SizeType i = 0; i < size(); i++)  // Bitset does not have iterators
+        {
+            if (!areClose(Base::at(i), rhs[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * This operator can only be used with string-like arrays; otherwise it will fail to compile.
      * @ref c_str()
      */
@@ -607,6 +640,9 @@ public:
         return std::strncmp(Base::c_str(), ch, MaxSize) == 0;
     }
 
+    /**
+     * @ref operator==()
+     */
     template <typename R> bool operator!=(const R& rhs) const { return !operator==(rhs); }
 
     /**
@@ -624,7 +660,7 @@ public:
         }
         while (*ch)
         {
-            push_back(*ch++);
+            push_back(ValueType(*ch++));  // Value type is likely to be unsigned char, so conversion may be required.
         }
         return *this;
     }
@@ -643,7 +679,7 @@ public:
         }
         while (*ch)
         {
-            push_back(*ch++);
+            push_back(ValueType(*ch++));
         }
         return *this;
     }
@@ -655,10 +691,8 @@ public:
     SelfType& operator+=(const Array<T, RhsArrayMode, RhsMaxSize>& rhs)
     {
         typedef Array<T, RhsArrayMode, RhsMaxSize> Rhs;
-        typedef typename Select<(sizeof(SizeType) > sizeof(typename Rhs::SizeType)),
-                                SizeType, typename Rhs::SizeType>::Result CommonSizeType;
         StaticAssert<IsDynamic>::check();
-        for (CommonSizeType i = 0; i < rhs.size(); i++)
+        for (typename Rhs::SizeType i = 0; i < rhs.size(); i++)
         {
             push_back(rhs[i]);
         }
@@ -678,7 +712,7 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
 
-        StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most compound types
+        StaticAssert<sizeof(A() >= A(0))>::check();              // This check allows to weed out most compound types
         StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-primitive types
 
         if (!format)
@@ -690,11 +724,11 @@ public:
 
         ValueType* const ptr = Base::end();
         UAVCAN_ASSERT(capacity() >= size());
-        const SizeType max_size = capacity() - size();
+        const SizeType max_size = SizeType(capacity() - size());
 
         // We have one extra byte for the null terminator, hence +1
         using namespace std; // For snprintf()
-        const int ret = snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
+        const int ret = snprintf(reinterpret_cast<char*>(ptr), SizeType(max_size + 1U), format, value);
 
         for (int i = 0; i < min(ret, int(max_size)); i++)
         {
@@ -710,6 +744,7 @@ public:
     /**
      * Fills this array as a packed square matrix from a static array.
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     template <typename ScalarType>
     void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
@@ -720,13 +755,14 @@ public:
     /**
      * Fills this array as a packed square matrix in place.
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     void packSquareMatrix()
     {
         if (this->size() == MaxSize)
         {
             ValueType matrix[MaxSize];
-            for (unsigned i = 0; i < MaxSize; i++)
+            for (SizeType i = 0; i < MaxSize; i++)
             {
                 matrix[i] = this->at(i);
             }
@@ -749,8 +785,12 @@ public:
     }
 
     /**
-     * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
+     * Fills this array as a packed square matrix from any container that has the following public entities:
+     *  - method begin()
+     *  - method size()
+     *  - only for C++03: type value_type
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
@@ -782,7 +822,7 @@ public:
     template <typename ScalarType>
     void unpackSquareMatrix(ScalarType (&dst_row_major)[MaxSize]) const
     {
-        unpackSquareMatrixImpl<ScalarType*>(dst_row_major);
+        unpackSquareMatrixImpl<ScalarType, ScalarType*>(dst_row_major);
     }
 
     /**
@@ -802,7 +842,10 @@ public:
     }
 
     /**
-     * Reconstructs full matrix, result will be saved into container that implements begin() and size().
+     * Reconstructs full matrix, result will be saved into container that has the following public entities:
+     *  - method begin()
+     *  - method size()
+     *  - only for C++03: type value_type
      * Please refer to the specification to learn more about matrix packing.
      */
     template <typename R>
@@ -811,7 +854,12 @@ public:
     {
         if (dst_row_major.size() == MaxSize)
         {
-            unpackSquareMatrixImpl(dst_row_major.begin());
+#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
+            typedef typename RemoveReference<decltype(*dst_row_major.begin())>::Type RhsValueType;
+            unpackSquareMatrixImpl<RhsValueType>(dst_row_major.begin());
+#else
+            unpackSquareMatrixImpl<typename R::value_type>(dst_row_major.begin());
+#endif
         }
         else
         {
@@ -873,7 +921,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void streamPrimitives(Stream& s, const ArrayType& array)
     {
         s << '[';
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             YamlStreamer<T>::stream(s, array.at(i), 0);
             if ((i + 1) < array.size())
@@ -888,7 +936,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void streamCharacters(Stream& s, const ArrayType& array)
     {
         s << '"';
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             const int c = array.at(i);
             if (c < 32 || c > 126)
@@ -896,10 +944,10 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
                 char nibbles[2] = {char((c >> 4) & 0xF), char(c & 0xF)};
                 for (int k = 0; k < 2; k++)
                 {
-                    nibbles[k] += '0';
+                    nibbles[k] = char(nibbles[k] + '0');
                     if (nibbles[k] > '9')
                     {
-                        nibbles[k] += 'A' - '9' - 1;
+                        nibbles[k] = char(nibbles[k] + 'A' - '9' - 1);
                     }
                 }
                 s << "\\x" << nibbles[0] << nibbles[1];
@@ -924,7 +972,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void genericStreamImpl(Stream& s, const ArrayType& array, int, SelectorStringLike)
     {
         bool printable_only = true;
-        for (int i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             if (!isNiceCharacter(array[i]))
             {
@@ -958,7 +1006,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
             s << "[]";
             return;
         }
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             s << '\n';
             for (int pos = 0; pos < level; pos++)

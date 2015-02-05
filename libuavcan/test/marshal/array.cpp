@@ -2,6 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+# pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 #include <gtest/gtest.h>
 #include <uavcan/marshal/types.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
@@ -37,7 +41,12 @@ struct CustomType
         , c()
     { }
 
-    bool operator==(const CustomType& rhs) const { return a == rhs.a && b == rhs.b && c == rhs.c; }
+    bool operator==(const CustomType& rhs) const
+    {
+        return a == rhs.a &&
+               uavcan::areFloatsExactlyEqual(b, rhs.b) &&
+               c == rhs.c;
+    }
 
     static int encode(const CustomType& obj, uavcan::ScalarCodec& codec,
                       uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
@@ -127,19 +136,19 @@ TEST(Array, Basic)
     /*
      * Modification with known values; array lengths are hard coded.
      */
-    for (int i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
     {
-        a1.at(i) = i;
+        a1.at(i) = int8_t(i);
     }
-    for (int i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         a2.at(i) = i;
     }
-    for (int i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
-        a3[i].a = i;
+        a3[i].a = int8_t(i);
         a3[i].b = i;
-        for (int i2 = 0; i2 < 5; i2++)
+        for (uint8_t i2 = 0; i2 < 5; i2++)
         {
             a3[i].c.push_back(i2 & 1);
         }
@@ -187,15 +196,15 @@ TEST(Array, Basic)
     ASSERT_EQ(a2_, a2);
     ASSERT_EQ(a3_, a3);
 
-    for (int i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
     {
         ASSERT_EQ(a1[i], a1_[i]);
     }
-    for (int i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         ASSERT_EQ(a2[i], a2_[i]);
     }
-    for (int i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         ASSERT_EQ(a3[i].a, a3_[i].a);
         ASSERT_EQ(a3[i].b, a3_[i].b);
@@ -355,11 +364,11 @@ TEST(Array, Dynamic)
     ASSERT_EQ(5, a.size());
     ASSERT_EQ(255, b.size());
 
-    for (int i = 0; i < 5; i++)
+    for (uint8_t i = 0; i < 5; i++)
     {
         ASSERT_TRUE(a[i]);
     }
-    for (int i = 0; i < 255; i++)
+    for (uint8_t i = 0; i < 255; i++)
     {
         ASSERT_EQ(72, b[i]);
     }
@@ -382,7 +391,11 @@ struct CustomType2
         , b()
     { }
 
-    bool operator==(const CustomType2& rhs) const { return a == rhs.a && b == rhs.b; }
+    bool operator==(const CustomType2& rhs) const
+    {
+        return uavcan::areFloatsExactlyEqual(a, rhs.a) &&
+               b == rhs.b;
+    }
 
     static int encode(const CustomType2& obj, uavcan::ScalarCodec& codec,
                       uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
@@ -699,7 +712,7 @@ TEST(Array, Appending)
     ASSERT_EQ(2, a[1]);
 
     b += a;
-    ASSERT_TRUE(a == b);
+    ASSERT_TRUE(b == a);
     b += a;
     ASSERT_EQ(4, b.size());
     ASSERT_EQ(1, b[0]);
@@ -793,8 +806,8 @@ TEST(Array, FlatStreaming)
     std::cout << std::endl;
 
     AF16D af16d1;
-    af16d1.push_back(1.23);
-    af16d1.push_back(4.56);
+    af16d1.push_back(1.23F);
+    af16d1.push_back(4.56F);
     uavcan::YamlStreamer<AF16D>::stream(std::cout, af16d1, 0);
     std::cout << std::endl;
 
@@ -816,15 +829,15 @@ TEST(Array, MultidimensionalStreaming)
 
     ThreeDimensional threedee;
     threedee.resize(3);
-    for (int x = 0; x < threedee.size(); x++)
+    for (uint8_t x = 0; x < threedee.size(); x++)
     {
         threedee[x].resize(3);
-        for (int y = 0; y < threedee[x].size(); y++)
+        for (uint8_t y = 0; y < threedee[x].size(); y++)
         {
             threedee[x][y].resize(3);
-            for (int z = 0; z < threedee[x][y].size(); z++)
+            for (uint8_t z = 0; z < threedee[x][y].size(); z++)
             {
-                threedee[x][y][z] = 1.0 / (x + y + z + 1.0);
+                threedee[x][y][z] = 1.0F / (float(x + y + z) + 1.0F);
             }
         }
     }
@@ -854,9 +867,9 @@ TEST(Array, SquareMatrixPacking)
         // Empty array will be decoded as zero matrix
         double nans3x3_out[9];
         m3x3s.unpackSquareMatrix(nans3x3_out);
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
-            ASSERT_FLOAT_EQ(0, nans3x3_out[i]);
+            ASSERT_DOUBLE_EQ(0, nans3x3_out[i]);
         }
     }
     {
@@ -866,25 +879,25 @@ TEST(Array, SquareMatrixPacking)
 
         empty.resize(9);
         m3x3s.unpackSquareMatrix(empty);
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
-            ASSERT_FLOAT_EQ(0, empty.at(i));
+            ASSERT_DOUBLE_EQ(0, empty.at(i));
         }
     }
 
     // Scalar matrix will be reduced to a single value
     {
         std::vector<float> scalar2x2(4);
-        scalar2x2[0] = scalar2x2[3] = 3.14;
+        scalar2x2[0] = scalar2x2[3] = 3.14F;
         m2x2f.packSquareMatrix(scalar2x2);
         ASSERT_EQ(1, m2x2f.size());
-        ASSERT_FLOAT_EQ(3.14, m2x2f[0]);
+        ASSERT_FLOAT_EQ(3.14F, m2x2f[0]);
 
         m2x2f.unpackSquareMatrix(scalar2x2);
         const float reference[] =
         {
-            3.14, 0,
-            0, 3.14
+            3.14F, 0.0F,
+            0.0F, 3.14F
         };
         ASSERT_TRUE(std::equal(scalar2x2.begin(), scalar2x2.end(), reference));
     }
@@ -900,7 +913,7 @@ TEST(Array, SquareMatrixPacking)
         };
         m6x6d.packSquareMatrix(scalar6x6);
         ASSERT_EQ(1, m6x6d.size());
-        ASSERT_FLOAT_EQ(-18, m6x6d[0]);
+        ASSERT_DOUBLE_EQ(-18, m6x6d[0]);
 
         std::vector<long double> output(36);
         m6x6d.unpackSquareMatrix(output);
@@ -920,12 +933,12 @@ TEST(Array, SquareMatrixPacking)
         };
         m6x6d.packSquareMatrix(diagonal6x6);
         ASSERT_EQ(6, m6x6d.size());
-        ASSERT_FLOAT_EQ(1,  m6x6d[0]);
-        ASSERT_FLOAT_EQ(-2, m6x6d[1]);
-        ASSERT_FLOAT_EQ(3,  m6x6d[2]);
-        ASSERT_FLOAT_EQ(-4, m6x6d[3]);
-        ASSERT_FLOAT_EQ(5,  m6x6d[4]);
-        ASSERT_FLOAT_EQ(-6, m6x6d[5]);
+        ASSERT_DOUBLE_EQ(1,  m6x6d[0]);
+        ASSERT_DOUBLE_EQ(-2, m6x6d[1]);
+        ASSERT_DOUBLE_EQ(3,  m6x6d[2]);
+        ASSERT_DOUBLE_EQ(-4, m6x6d[3]);
+        ASSERT_DOUBLE_EQ(5,  m6x6d[4]);
+        ASSERT_DOUBLE_EQ(-6, m6x6d[5]);
 
         std::vector<long double> output(36);
         m6x6d.unpackSquareMatrix(output);
@@ -935,15 +948,15 @@ TEST(Array, SquareMatrixPacking)
     // A matrix filled with random values will not be compressed
     {
         std::vector<float> full3x3(9);
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
-            full3x3[i] = i;
+            full3x3[i] = float(i);
         }
         m3x3s.packSquareMatrix(full3x3);
         ASSERT_EQ(9, m3x3s.size());
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
-            ASSERT_FLOAT_EQ(i, m3x3s[i]);
+            ASSERT_FLOAT_EQ(float(i), m3x3s[i]);
         }
 
         long output[9];
@@ -961,21 +974,21 @@ TEST(Array, SquareMatrixPacking)
         };
         m3x3s.packSquareMatrix(scalarnan3x3);
         ASSERT_EQ(3, m3x3s.size());
-        ASSERT_FALSE(m3x3s[0] == m3x3s[0]);   // NAN
-        ASSERT_FALSE(m3x3s[1] == m3x3s[1]);   // NAN
-        ASSERT_FALSE(m3x3s[2] == m3x3s[2]);   // NAN
+        ASSERT_FALSE(m3x3s[0] <= m3x3s[0]);   // NAN
+        ASSERT_FALSE(m3x3s[1] <= m3x3s[1]);   // NAN
+        ASSERT_FALSE(m3x3s[2] <= m3x3s[2]);   // NAN
 
         float output[9];
         m3x3s.unpackSquareMatrix(output);
-        ASSERT_FALSE(output[0] == output[0]);   // NAN
+        ASSERT_FALSE(output[0] <= output[0]);   // NAN
         ASSERT_EQ(0, output[1]);
         ASSERT_EQ(0, output[2]);
         ASSERT_EQ(0, output[3]);
-        ASSERT_FALSE(output[4] == output[4]);   // NAN
+        ASSERT_FALSE(output[4] <= output[4]);   // NAN
         ASSERT_EQ(0, output[5]);
         ASSERT_EQ(0, output[6]);
         ASSERT_EQ(0, output[7]);
-        ASSERT_FALSE(output[8] == output[8]);   // NAN
+        ASSERT_FALSE(output[8] <= output[8]);   // NAN
     }
 
     // This is a full matrix too (notice the NAN)
@@ -988,14 +1001,14 @@ TEST(Array, SquareMatrixPacking)
         m2x2f.packSquareMatrix(full2x2);
         ASSERT_EQ(4, m2x2f.size());
         ASSERT_FLOAT_EQ(1, m2x2f[0]);
-        ASSERT_FALSE(m2x2f[1] == m2x2f[1]);   // NAN
+        ASSERT_FALSE(m2x2f[1] <= m2x2f[1]);   // NAN
         ASSERT_FLOAT_EQ(0, m2x2f[2]);
         ASSERT_FLOAT_EQ(-2, m2x2f[3]);
 
         float output[4];
         m2x2f.unpackSquareMatrix(output);
         ASSERT_EQ(1, output[0]);
-        ASSERT_FALSE(output[1] == output[1]);   // NAN
+        ASSERT_FALSE(output[1] <= output[1]);   // NAN
         ASSERT_EQ(0, output[2]);
         ASSERT_EQ(-2, output[3]);
     }
@@ -1010,6 +1023,48 @@ TEST(Array, SquareMatrixPacking)
         m2x2f.packSquareMatrix(zero2x2);
         ASSERT_EQ(1, m2x2f.size());
         ASSERT_FLOAT_EQ(0, m2x2f[0]);
+    }
+}
+
+
+TEST(Array, FuzzySquareMatrixPacking)
+{
+    Array<FloatSpec<64, CastModeSaturate>, ArrayModeDynamic, 36> m6x6d;
+
+    // Diagonal matrix will be reduced to an array of length Width
+    {
+        float diagonal6x6[] =
+        {
+            1,  0,  0,  0,  0,  0,
+            0, -2,  0,  0,  0,  0,
+            0,  0,  3,  0,  0,  0,
+            0,  0,  0, -4,  0,  0,
+            0,  0,  0,  0,  5,  0,
+            0,  0,  0,  0,  0, -6
+        };
+
+        // Some almost-zeroes
+        diagonal6x6[1]  =  std::numeric_limits<float>::epsilon();
+        diagonal6x6[4]  = -std::numeric_limits<float>::epsilon();
+        diagonal6x6[34] = -std::numeric_limits<float>::epsilon();
+
+        m6x6d.packSquareMatrix(diagonal6x6);
+        ASSERT_EQ(6, m6x6d.size());
+        ASSERT_DOUBLE_EQ(1,  m6x6d[0]);
+        ASSERT_DOUBLE_EQ(-2, m6x6d[1]);
+        ASSERT_DOUBLE_EQ(3,  m6x6d[2]);
+        ASSERT_DOUBLE_EQ(-4, m6x6d[3]);
+        ASSERT_DOUBLE_EQ(5,  m6x6d[4]);
+        ASSERT_DOUBLE_EQ(-6, m6x6d[5]);
+
+        std::vector<long double> output(36);
+        m6x6d.unpackSquareMatrix(output);
+
+        // This comparison will fail because epsilons
+        ASSERT_FALSE(std::equal(output.begin(), output.end(), diagonal6x6));
+
+        // This comparison will be ok
+        ASSERT_TRUE(std::equal(output.begin(), output.end(), diagonal6x6, &uavcan::areClose<float, float>));
     }
 }
 
@@ -1045,13 +1100,13 @@ TEST(Array, SquareMatrixPackingIntegers)
     }
     {
         std::vector<long double> full(9);
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
             full[i] = i;
         }
         m3x3int.packSquareMatrix(full);
         ASSERT_EQ(9, m3x3int.size());
-        for (int i = 0; i < 9; i++)
+        for (uint8_t i = 0; i < 9; i++)
         {
             ASSERT_EQ(i, m3x3int[i]);
         }
@@ -1081,7 +1136,7 @@ TEST(Array, SquareMatrixPackingInPlace)
     // Will fill with zeros - matrix is empty
     m3x3s.unpackSquareMatrix();
     ASSERT_EQ(9, m3x3s.size());
-    for (unsigned i = 0; i < 9; i++)
+    for (uint8_t i = 0; i < 9; i++)
     {
         ASSERT_EQ(0, m3x3s[i]);
     }
@@ -1135,9 +1190,91 @@ TEST(Array, SquareMatrixPackingInPlace)
     m3x3s.unpackSquareMatrix();
     ASSERT_EQ(9, m3x3s.size());
 
-    for (unsigned i = 0; i < 9; i++)
+    for (uint8_t i = 0; i < 9; i++)
     {
         const bool diagonal = (i == 0) || (i == 4) || (i == 8);
         ASSERT_EQ((diagonal ? 123 : 0), m3x3s[i]);
     }
+}
+
+TEST(Array, FuzzyComparison)
+{
+    typedef Array<Array<Array<FloatSpec<32, CastModeSaturate>, ArrayModeStatic, 2>,
+                ArrayModeStatic, 2>,
+          ArrayModeStatic, 2> ArrayStatic32;
+
+    typedef Array<Array<Array<FloatSpec<64, CastModeSaturate>, ArrayModeDynamic, 2>,
+                ArrayModeDynamic, 2>,
+          ArrayModeDynamic, 2> ArrayDynamic64;
+
+    ArrayStatic32 array_s32;
+
+    ArrayDynamic64 array_d64;
+
+    array_d64.resize(2);
+    array_d64[0].resize(2);
+    array_d64[1].resize(2);
+    array_d64[0][0].resize(2);
+    array_d64[0][1].resize(2);
+    array_d64[1][0].resize(2);
+    array_d64[1][1].resize(2);
+
+    std::cout << "One:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
+
+    // Both are equal right now
+    ASSERT_TRUE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    // Slightly modifying - still close enough
+    array_s32[0][0][0] = 123.456F + uavcan::NumericTraits<float>::epsilon() * 123.0F;
+    array_s32[0][0][1] = uavcan::NumericTraits<float>::infinity();
+    array_s32[0][1][0] = uavcan::NumericTraits<float>::epsilon();
+    array_s32[0][1][1] = -uavcan::NumericTraits<float>::epsilon();
+
+    array_d64[0][0][0] = 123.456;
+    array_d64[0][0][1] = uavcan::NumericTraits<double>::infinity();
+    array_d64[0][1][0] = -uavcan::NumericTraits<double>::epsilon();  // Note that the sign is inverted
+    array_d64[0][1][1] = uavcan::NumericTraits<double>::epsilon();
+
+    std::cout << "Two:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
+
+    // They are close bot not exactly equal
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    // Not close
+    array_d64[0][0][0] = 123.457;
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_FALSE(array_d64.isClose(array_s32));
+    ASSERT_FALSE(array_s32.isClose(array_d64));
+
+    // Values are close, but lengths differ
+    array_d64[0][0][0] = 123.456;
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    array_d64[0][0].resize(1);
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_FALSE(array_d64.isClose(array_s32));
+    ASSERT_FALSE(array_s32.isClose(array_d64));
+
+    std::cout << "Three:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
 }
