@@ -10,7 +10,7 @@ void CanAcceptanceFilterConfigurator::computeConfiguration()
 {
     fillArray();
 
-    uint16_t i_ind, j_ind, rank, i_rank, j_rank, best_rank;
+    uint16_t i_ind, j_ind, rank, best_rank, i_rank = 0, j_rank = 0;
     FilterConfig temp_array;
 
     while (getNumFilters()  >= configs_.size())      /// "=" because we need +1 iteration for ServiceResponse
