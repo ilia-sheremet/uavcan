@@ -49,14 +49,14 @@ void CanAcceptanceFilterConfigurator::computeConfiguration()
 
 void CanAcceptanceFilterConfigurator::fillArray()
 {
-    const TransferListenerBase* p = dispatcher.getListOfMessageListeners().get();
-    configs_.reset();
+    const TransferListenerBase* p = node_.getDispatcher().getListOfMessageListeners().get();
+    configs_.clear();
 
     while (p)
     {
         FilterConfig cfg;
 
-        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID()) << 19;
+        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 19;
         cfg.id |= static_cast<uint32_t>(p->getDataTypeDescriptor().getKind()) << 17;
         cfg.mask = DefaultFilterMask;
 
@@ -109,7 +109,8 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 {
     static const uint16_t InvalidOut = 0xFFFF;
     uint16_t out = InvalidOut;
-    const ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
+    // TODO HACK FIXME make getCanDriver() return a mutable reference
+    ICanDriver& can_driver = const_cast<ICanDriver&>(node_.getDispatcher().getCanIOManager().getCanDriver());
 
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
     {
