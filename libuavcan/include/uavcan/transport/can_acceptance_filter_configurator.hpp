@@ -42,7 +42,7 @@ class CanAcceptanceFilterConfigurator
 
 public:
 
-	 explicit CanAcceptanceFilterConfigurator(INode& node);
+	 explicit CanAcceptanceFilterConfigurator(INode& node):node_(node){};
 
 	 void computeConfiguration();
 

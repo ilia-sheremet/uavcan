@@ -13,6 +13,8 @@
 
 #include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
+using namespace uavcan;
+
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
 {
@@ -101,8 +103,8 @@ static void runForever(const uavcan_linux::NodePtr& node)
     }
 }
 
-namespace uavcan
-{
+
+
 int main(int argc, const char** argv)
 {
     if (argc < 3)
@@ -122,4 +124,4 @@ int main(int argc, const char** argv)
     runForever(node);
     return 0;
 } 
-}
+
