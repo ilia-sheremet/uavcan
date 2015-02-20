@@ -9,8 +9,9 @@
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 
- #include <uavcan/transport/dispatcher.hpp>
-//#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
+#include <uavcan/transport/dispatcher.hpp>
+
+#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
@@ -99,7 +100,9 @@ static void runForever(const uavcan_linux::NodePtr& node)
         }
     }
 }
- 
+
+namespace uavcan
+{
 int main(int argc, const char** argv)
 {
     if (argc < 3)
@@ -113,9 +116,10 @@ int main(int argc, const char** argv)
     std::cout << "Initialized" << std::endl;
 
 
-
-    const TransferListenerBase* p = node_.getDispatcher().getListOfMessageListeners().get();
+    CanAcceptanceFilterConfigurator can_filter_cfg(*node);
+    //const  TransferListenerBase* p = node.getDispatcher().getListOfMessageListeners().get();
 
     runForever(node);
     return 0;
 } 
+}
