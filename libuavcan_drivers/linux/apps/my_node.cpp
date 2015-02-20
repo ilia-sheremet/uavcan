@@ -8,6 +8,7 @@
 
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
+#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
@@ -114,5 +115,3 @@ int main(int argc, const char** argv)
     runForever(node);
     return 0;
 } 
-
-
