@@ -8,7 +8,9 @@
 
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
-#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
+
+ #include <uavcan/transport/dispatcher.hpp>
+//#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
@@ -109,6 +111,8 @@ int main(int argc, const char** argv)
     std::vector<std::string> iface_names(argv + 2, argv + argc);
     auto node = initNode(iface_names, self_node_id, "org.uavcan.pan_galactic_gargle_blaster");
     std::cout << "Initialized" << std::endl;
+
+
 
     const TransferListenerBase* p = node_.getDispatcher().getListOfMessageListeners().get();
 

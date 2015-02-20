@@ -7,6 +7,8 @@
 #include <uavcan/error.hpp>
 #include <uavcan/transport/dispatcher.hpp>
 #include <uavcan/node/abstract_node.hpp>
+#include <uavcan/build_config.hpp>
+
 
 #ifdef DEFAULT_FILTER_MASK
 static const unsigned DefaultFilterMask = DEFAULT_FILTER_MASK;
