@@ -8,10 +8,10 @@
 
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
-
 #include <uavcan/transport/dispatcher.hpp>
-
 #include <uavcan/transport/can_acceptance_filter_configurator.hpp>
+
+#include <bitset>
 
 using namespace uavcan;
 
@@ -53,9 +53,10 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     return node;
 }
  
-static void runForever(const uavcan_linux::NodePtr& node)
+
+static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::NodePtr& node_2)
 {
- 
+
     /*
      * Subscribing to the logging message just for fun
      */
@@ -80,7 +81,6 @@ static void runForever(const uavcan_linux::NodePtr& node)
     };
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(10000), send_10s_massage);
  
-
     /*
      * A useless server that just prints the request and responds with a default-initialized response data structure
      */
@@ -114,14 +114,59 @@ int main(int argc, const char** argv)
     }
     const int self_node_id = std::stoi(argv[1]);
     std::vector<std::string> iface_names(argv + 2, argv + argc);
-    auto node = initNode(iface_names, self_node_id, "org.uavcan.pan_galactic_gargle_blaster");
-    std::cout << "Initialized" << std::endl;
+
+    auto node = initNode(iface_names, self_node_id, "My_node_1");
+    std::cout << "Node 1 Initialized" << std::endl;
+
+    auto node_2 = initNode(iface_names, self_node_id + 1, "My_node_2");
+    std::cout << "Node 2 Initialized" << std::endl<< std::endl;
+
+  //auto keyvalue_pub = node->makePublisher<uavcan::protocol::debug::KeyValue>();
+
+    //////////////////////////////////////////////////////////////////////
+     uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(*node);
+
+     uavcan::protocol::debug::KeyValue kv_msg;
+     kv_msg.type = kv_msg.TYPE_FLOAT;
+  // kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));kv_msg.type = kv_msg.TYPE_FLOAT;
+     kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));
+     kv_msg.key = "random";  // "random"*/
+
+     const int pub_res = kv_pub.broadcast(kv_msg);
+     if (pub_res < 0)
+             {
+                 std::printf("KV publication failure: %d\n", pub_res);
+             }
+
+     std::cout << "Massege is broadcasted from Node_1" << std::endl;
 
 
+     //////////////////////////////////////////////////////////////////////
+
+     uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(*node_2);
+
+     const int kv_sub_start_res =
+             kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { std::cout << "Message received on Node_2 = " <<msg << std::endl; });
+     if (kv_sub_start_res < 0)
+       {
+           std::exit(1);                   // TODO proper error handling
+       }
+
+     //////////////////////////////////////////////////////////////////////
+
+   /*
     CanAcceptanceFilterConfigurator can_filter_cfg(*node);
-    //const  TransferListenerBase* p = node.getDispatcher().getListOfMessageListeners().get();
+    CanFilterConfig data_pair;
 
-    runForever(node);
+    const  TransferListenerBase* p = node->getDispatcher().getListOfMessageListeners().get();
+
+    data_pair.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 19;
+    data_pair.id |= static_cast<uint32_t>(p->getDataTypeDescriptor().getKind()) << 17;
+
+    std::cout << "data_id = " << std::bitset<29>(data_pair.id) << std::endl;
+    */
+
+    //runForever(node, node_2);
     return 0;
 } 
 

@@ -56,6 +56,9 @@ target_link_libraries(test_time_sync ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 add_executable(my_node apps/my_node.cpp)
 target_link_libraries(my_node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+#add_executable(tut_init_node apps/tut_init_node.cpp)
+#target_link_libraries(tut_init_node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
 #
 # Tools
 # Someday they will be replaced with Python scripts (pyuavcan is not finished at the moment)
