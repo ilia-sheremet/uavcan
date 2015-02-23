@@ -56,7 +56,9 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
 
 static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::NodePtr& node_2)
 {
-    //////////////////////////////////////////////////////////////////////
+       /*
+        * Publisher
+        */
       uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(*node);
 
       uavcan::protocol::debug::KeyValue kv_msg;
@@ -74,8 +76,10 @@ static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::No
       std::cout << "Massege is broadcasted from Node_1" << std::endl;
 
 
-      //////////////////////////////////////////////////////////////////////
 
+      /*
+       * Subscriber
+       */
       uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(*node_2);
 
       const int kv_sub_start_res =
@@ -84,7 +88,6 @@ static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::No
         {
             std::exit(1);                   // TODO proper error handling
         }
-      //////////////////////////////////////////////////////////////////////
 
     /*
      * Timer that uses the above publisher once a 10 sec
