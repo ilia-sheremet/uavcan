@@ -56,21 +56,35 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
 
 static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::NodePtr& node_2)
 {
+    //////////////////////////////////////////////////////////////////////
+      uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(*node);
 
-    /*
-     * Subscribing to the logging message just for fun
-     */
-    auto log_sub = node->makeSubscriber<uavcan::protocol::debug::LogMessage>(
-        [](const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage>& msg)
+      uavcan::protocol::debug::KeyValue kv_msg;
+      kv_msg.type = kv_msg.TYPE_FLOAT;
+   // kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));kv_msg.type = kv_msg.TYPE_FLOAT;
+      kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));
+      kv_msg.key = "random";  // "random"*/
+
+      const int pub_res = kv_pub.broadcast(kv_msg);
+      if (pub_res < 0)
+              {
+                  std::printf("KV publication failure: %d\n", pub_res);
+              }
+
+      std::cout << "Massege is broadcasted from Node_1" << std::endl;
+
+
+      //////////////////////////////////////////////////////////////////////
+
+      uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(*node_2);
+
+      const int kv_sub_start_res =
+              kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { std::cout << "Message received on Node_2 = " <<msg << std::endl; });
+      if (kv_sub_start_res < 0)
         {
-            std::cout << msg << std::endl;
-        });
- 
-    /*
-     * Key Value publisher
-     */
-    auto keyvalue_pub = node->makePublisher<uavcan::protocol::debug::KeyValue>();
- 
+            std::exit(1);                   // TODO proper error handling
+        }
+      //////////////////////////////////////////////////////////////////////
 
     /*
      * Timer that uses the above publisher once a 10 sec
@@ -81,14 +95,6 @@ static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::No
     };
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(10000), send_10s_massage);
  
-    /*
-     * A useless server that just prints the request and responds with a default-initialized response data structure
-     */
-    auto server = node->makeServiceServer<uavcan::protocol::param::SaveErase>(
-        [](const uavcan::protocol::param::SaveErase::Request& req, uavcan::protocol::param::SaveErase::Response&)
-        {
-            std::cout << req << std::endl;
-        });
  
     /*
      * Spinning forever
@@ -123,36 +129,7 @@ int main(int argc, const char** argv)
 
   //auto keyvalue_pub = node->makePublisher<uavcan::protocol::debug::KeyValue>();
 
-    //////////////////////////////////////////////////////////////////////
-     uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(*node);
 
-     uavcan::protocol::debug::KeyValue kv_msg;
-     kv_msg.type = kv_msg.TYPE_FLOAT;
-  // kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));kv_msg.type = kv_msg.TYPE_FLOAT;
-     kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));
-     kv_msg.key = "random";  // "random"*/
-
-     const int pub_res = kv_pub.broadcast(kv_msg);
-     if (pub_res < 0)
-             {
-                 std::printf("KV publication failure: %d\n", pub_res);
-             }
-
-     std::cout << "Massege is broadcasted from Node_1" << std::endl;
-
-
-     //////////////////////////////////////////////////////////////////////
-
-     uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(*node_2);
-
-     const int kv_sub_start_res =
-             kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { std::cout << "Message received on Node_2 = " <<msg << std::endl; });
-     if (kv_sub_start_res < 0)
-       {
-           std::exit(1);                   // TODO proper error handling
-       }
-
-     //////////////////////////////////////////////////////////////////////
 
    /*
     CanAcceptanceFilterConfigurator can_filter_cfg(*node);
@@ -166,7 +143,7 @@ int main(int argc, const char** argv)
     std::cout << "data_id = " << std::bitset<29>(data_pair.id) << std::endl;
     */
 
-    //runForever(node, node_2);
+    runForever(node, node_2);
     return 0;
 } 
 
