@@ -1,6 +1,10 @@
 /*
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
+//#include <iostream>
+//#include <string>
+#include <uavcan/transport/dispatcher.hpp>
+
 
 #include <cstdio>
 #include <algorithm>
@@ -9,6 +13,15 @@
 #include <uavcan_lpc11c24/uavcan_lpc11c24.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/logger.hpp>
+
+#include </home/postal/github/uavcan/dsdl/dsdlc_generated/sirius_cybernetics_corporation/GetCurrentTime.hpp>
+#include </home/postal/github/uavcan/dsdl/dsdlc_generated/sirius_cybernetics_corporation/PerformLinearLeastSquaresFit.hpp>
+
+using sirius_cybernetics_corporation::GetCurrentTime;
+using sirius_cybernetics_corporation::PerformLinearLeastSquaresFit;
+
+extern uavcan::ICanDriver& getCanDriver();
+extern uavcan::ISystemClock& getSystemClock();
 
 namespace
 {
@@ -91,37 +104,6 @@ void init()
     board::resetWatchdog();
 }
 
-void reverse(char* s)
-{
-    for (int i = 0, j = int(std::strlen(s)) - 1; i < j; i++, j--)
-    {
-        const char c = s[i];
-        s[i] = s[j];
-        s[j] = c;
-    }
-}
-
-void lltoa(long long n, char buf[24])
-{
-    const short sign = (n < 0) ? -1 : 1;
-    if (sign < 0)
-    {
-        n = -n;
-    }
-    unsigned i = 0;
-    do
-    {
-        buf[i++] = char(n % 10 + '0');
-    }
-    while ((n /= 10) > 0);
-    if (sign < 0)
-    {
-        buf[i++] = '-';
-    }
-    buf[i] = '\0';
-    reverse(buf);
-}
-
 }
 
 int main()
@@ -131,6 +113,19 @@ int main()
     getNode().setStatusOk();
 
     uavcan::MonotonicTime prev_log_at;
+
+    auto regist_result =
+            uavcan::GlobalDataTypeRegistry::instance().regist<PerformLinearLeastSquaresFit>(43);
+
+    if (regist_result == uavcan::GlobalDataTypeRegistry::RegistResultOk)
+    {
+        return 0;
+    }
+
+  uavcan::Publisher<GetCurrentTime> msg_pub(getNode());
+
+
+
 
     while (true)
     {
@@ -143,17 +138,11 @@ int main()
         {
             prev_log_at = ts;
 
-            // We don't want to use formatting functions provided by libuavcan because they rely on std::snprintf()
-            char buf[24];
-            lltoa(uavcan_lpc11c24::clock::getPrevUtcAdjustment().toUSec(), buf);
-            buf[sizeof(buf) - 1] = '\0';
+            for (int i=0; i<100; i++)
+            {
+                return 0;
+            }
 
-            // ...hence we need to construct the message manually:
-            uavcan::protocol::debug::LogMessage logmsg;
-            logmsg.level.value = uavcan::protocol::debug::LogLevel::INFO;
-            logmsg.source = "app";
-            logmsg.text = buf;
-            (void)getLogger().log(logmsg);
         }
 
         board::resetWatchdog();
