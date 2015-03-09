@@ -6,20 +6,24 @@
 #include <vector>
 #include <string>
 #include <uavcan_linux/uavcan_linux.hpp>
-#include <uavcan/protocol/debug/KeyValue.hpp>
+
 #include <uavcan/protocol/param/SaveErase.hpp>
 #include "debug.hpp"
 
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/dispatcher.hpp>
-#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
+//#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
 #include </home/postal/github/uavcan/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24/das_test/MyDataType.hpp>
 
 #include <bitset>
 
 using namespace uavcan;
+using das_test::MyDataType;
+
+extern uavcan::ICanDriver& getCanDriver();
+extern uavcan::ISystemClock& getSystemClock();
 
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
@@ -54,46 +58,14 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     * Set the status to OK to inform other nodes that we're ready to work now
     */
     node->setStatusOk();
-    node->logInfo ("Ilias_node", "Hello, Ilia is my creator!");
- 
+    node->logInfo ("Ilias_node", "Hello, Ilia.");
+
     return node;
 }
  
 
-static void runForever(const uavcan_linux::NodePtr& node, const uavcan_linux::NodePtr& node_2)
+static void runForever(const uavcan_linux::NodePtr& node)
 {
-       /*
-        * Publisher
-        */
-      uavcan::Publisher<uavcan::protocol::debug::KeyValue> kv_pub(*node);
-
-      uavcan::protocol::debug::KeyValue kv_msg;
-      kv_msg.type = kv_msg.TYPE_FLOAT;
-   // kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));kv_msg.type = kv_msg.TYPE_FLOAT;
-      kv_msg.numeric_value.push_back(std::rand() / float(RAND_MAX));
-      kv_msg.key = "random";  // "random"*/
-
-      const int pub_res = kv_pub.broadcast(kv_msg);
-      if (pub_res < 0)
-              {
-                  std::printf("KV publication failure: %d\n", pub_res);
-              }
-
-      std::cout << "Massege is broadcasted from Node_1" << std::endl;
-
-
-
-      /*
-       * Subscriber
-       */
-      uavcan::Subscriber<uavcan::protocol::debug::KeyValue> kv_sub(*node_2);
-
-      const int kv_sub_start_res =
-              kv_sub.start([&](const uavcan::protocol::debug::KeyValue& msg) { std::cout << "Message received on Node_2 = " <<msg << std::endl; });
-      if (kv_sub_start_res < 0)
-        {
-            std::exit(1);                   // TODO proper error handling
-        }
 
     /*
      * Timer that uses the above publisher once a 10 sec
@@ -133,25 +105,38 @@ int main(int argc, const char** argv)
     auto node = initNode(iface_names, self_node_id, "My_node_1");
     std::cout << "Node 1 Initialized" << std::endl;
 
-    auto node_2 = initNode(iface_names, self_node_id + 1, "My_node_2");
-    std::cout << "Node 2 Initialized" << std::endl<< std::endl;
-
-  //auto keyvalue_pub = node->makePublisher<uavcan::protocol::debug::KeyValue>();
 
 
-/*
-    CanAcceptanceFilterConfigurator can_filter_cfg(*node);
-    CanFilterConfig data_pair;
+    auto regist_result = uavcan::GlobalDataTypeRegistry::instance().regist<MyDataType>(852);
+       if (regist_result != uavcan::GlobalDataTypeRegistry::RegistResultOk)
+          {
+              /*
+               * Possible reasons for a failure:
+               * - Data type name or ID is not unique
+               * - Data Type Registry has been frozen and can't be modified anymore
+               */
+              std::printf("Failed to register the data type: %d\n", int(regist_result));
+          }
+       else
+           std::printf("Success.\n");
+    /*
+     * Publisher
+     */
 
-    const  TransferListenerBase* p = node->getDispatcher().getListOfMessageListeners().get();
+    uavcan::Publisher<MyDataType> msg_pub(*node);
 
-    data_pair.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 19;
-    data_pair.id |= static_cast<uint32_t>(p->getDataTypeDescriptor().getKind()) << 17;
+    das_test::MyDataType trnsmt_msg;
+    trnsmt_msg.my_number = 0;
 
-    std::cout << "data_id = " << std::bitset<29>(data_pair.id) << std::endl;
-*/
+    for (int i=0; i<100; i++)
+                 {
+                  trnsmt_msg.my_number ++;
+                  msg_pub.broadcast(trnsmt_msg);
+                 }
 
-    runForever(node, node_2);
+
+    runForever(node);
+
     return 0;
 } 
 

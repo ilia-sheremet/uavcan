@@ -1,10 +1,9 @@
 /*
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
-//#include <iostream>
-//#include <string>
-#include <uavcan/transport/dispatcher.hpp>
 
+#include <cstdlib>
+#include <unistd.h>
 
 #include <cstdio>
 #include <algorithm>
@@ -14,11 +13,12 @@
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/logger.hpp>
 
-#include </home/postal/github/uavcan/dsdl/dsdlc_generated/sirius_cybernetics_corporation/GetCurrentTime.hpp>
-#include </home/postal/github/uavcan/dsdl/dsdlc_generated/sirius_cybernetics_corporation/PerformLinearLeastSquaresFit.hpp>
+#include </home/postal/github/uavcan/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24/das_test/MyDataType.hpp>
 
-using sirius_cybernetics_corporation::GetCurrentTime;
-using sirius_cybernetics_corporation::PerformLinearLeastSquaresFit;
+
+using das_test::MyDataType;
+
+
 
 extern uavcan::ICanDriver& getCanDriver();
 extern uavcan::ISystemClock& getSystemClock();
@@ -68,7 +68,7 @@ void init()
 
     board::resetWatchdog();
 
-    getNode().setNodeID(72);
+    getNode().setNodeID(112);
     getNode().setName("org.uavcan.lpc11c24_test");
 
     uavcan::protocol::SoftwareVersion swver;
@@ -114,17 +114,25 @@ int main()
 
     uavcan::MonotonicTime prev_log_at;
 
-    auto regist_result =
-            uavcan::GlobalDataTypeRegistry::instance().regist<PerformLinearLeastSquaresFit>(43);
+    uavcan::GlobalDataTypeRegistry::instance().regist<MyDataType>(100);
 
-    if (regist_result == uavcan::GlobalDataTypeRegistry::RegistResultOk)
-    {
-        return 0;
-    }
+//    auto descriptor = uavcan::GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService,
+//                                                                         "das_test.MyDataType");
+//    assert(descriptor->getID() == uavcan::DataTypeID(45));
+//
+//    if (descriptor == 0)
+//        return 0;
 
-  uavcan::Publisher<GetCurrentTime> msg_pub(getNode());
+    uavcan::Publisher<MyDataType> msg_pub(getNode());
 
+    das_test::MyDataType trnsmt_msg;
+    trnsmt_msg.my_number = 0;
 
+    for (int i=0; i<100; i++)
+              {
+                  trnsmt_msg.my_number ++;
+                  msg_pub.broadcast(trnsmt_msg);
+              }
 
 
     while (true)
@@ -133,15 +141,11 @@ int main()
         board::setErrorLed(res < 0);
         board::setStatusLed(uavcan_lpc11c24::CanDriver::instance().hadActivity());
 
-        const auto ts = uavcan_lpc11c24::clock::getMonotonic();
+
+          const auto ts = uavcan_lpc11c24::clock::getMonotonic();
         if ((ts - prev_log_at).toMSec() >= 1000)
         {
             prev_log_at = ts;
-
-            for (int i=0; i<100; i++)
-            {
-                return 0;
-            }
 
         }
 
