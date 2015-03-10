@@ -59,6 +59,9 @@ target_link_libraries(my_node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 add_executable(dt_test apps/data_type_test.cpp)
 target_link_libraries(dt_test ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(dt_test_pub apps/data_type_test_2.cpp)
+target_link_libraries(dt_test_pub ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
 #add_executable(tut_init_node apps/tut_init_node.cpp)
 #target_link_libraries(tut_init_node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 

@@ -1,3 +1,8 @@
+/*    Test of publishing user data type from one node "data_type_test_2" 
+ * and subscribing from "data_type_test"
+ *
+ */
+
 #include <cstdlib>
 #include <unistd.h>
 #include <cstdio>
@@ -75,9 +80,6 @@ static void runForever(const uavcan_linux::NodePtr& node)
         std::cout << "This massage is send by " << int(node->getNodeID().get()) << std::endl;
     };
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(10000), send_10s_massage);
-
-
-
  
  
     /*
@@ -85,18 +87,6 @@ static void runForever(const uavcan_linux::NodePtr& node)
      */
     while (true)
     {
-        /*
-         * Subscriber
-         */
-
-        uavcan::Subscriber<MyDataType> log_sub(*node);
-
-        log_sub.start([&](const MyDataType& msg) //log_sub.start([&](const uavcan::ReceivedDataStructure<MyDataType>& msg)
-        {
-        std::cout << msg << std::endl;
-        });
-
-
         const int res = node->spin(uavcan::MonotonicDuration::getInfinite());
         if (res < 0)
         {
@@ -121,36 +111,20 @@ int main(int argc, const char** argv)
     std::cout << "Node 1 Initialized" << std::endl;
 
 
-
-    auto regist_result = uavcan::GlobalDataTypeRegistry::instance().regist<MyDataType>(852);
-       if (regist_result != uavcan::GlobalDataTypeRegistry::RegistResultOk)
-          {
-              /*
-               * Possible reasons for a failure:
-               * - Data type name or ID is not unique
-               * - Data Type Registry has been frozen and can't be modified anymore
-               */
-              std::printf("Failed to register the data type: %d\n", int(regist_result));
-          }
-       else
-           std::printf("Success.\n");
-
-     /*
+    /*
      * Publisher
      */
-/*
 
     uavcan::Publisher<MyDataType> msg_pub(*node);
 
     das_test::MyDataType trnsmt_msg;
     trnsmt_msg.my_number = 0;
 
-    for (int i=0; i<100; i++)
+    for (int i=0; i<400; i++)
                  {
                   trnsmt_msg.my_number ++;
                   msg_pub.broadcast(trnsmt_msg);
                  }
-*/
 
 
     runForever(node);

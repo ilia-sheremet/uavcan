@@ -13,7 +13,7 @@
 #include <uavcan/driver/can.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/dispatcher.hpp>
-#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
+//#include <uavcan/transport/can_acceptance_filter_configurator.hpp>
 
 #include </home/postal/github/uavcan/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24/das_test/MyDataType.hpp>
 
