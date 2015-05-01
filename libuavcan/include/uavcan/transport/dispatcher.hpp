@@ -23,7 +23,7 @@ class UAVCAN_EXPORT Dispatcher;
 /**
  * Inherit this class to receive notifications about all TX CAN frames that were transmitted with the loopback flag.
  */
-class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
+class UAVCAN_EXPORT LoopbackFrameListenerBase: public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
 {
     Dispatcher& dispatcher_;
 
@@ -187,6 +187,7 @@ public:
     const ISystemClock& getSystemClock() const { return sysclock_; }
     ISystemClock& getSystemClock() { return sysclock_; }
 
+    CanIOManager& getCanIOManager() { return canio_; }
     const CanIOManager& getCanIOManager() const { return canio_; }
 
     const TransferPerfCounter& getTransferPerfCounter() const { return perf_; }

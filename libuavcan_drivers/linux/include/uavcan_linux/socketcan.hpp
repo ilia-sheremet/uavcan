@@ -432,7 +432,7 @@ public:
     /**
      * Returns number of errors of each kind in a map.
      */
-    const decltype(errors_)& getErrors() const { return errors_; }
+    const decltype(errors_) & getErrors() const { return errors_; }
 
     int getFileDescriptor() const { return fd_; }
 
@@ -600,6 +600,10 @@ public:
     virtual SocketCanIface* getIface(std::uint8_t iface_index)
     {
         return (iface_index >= num_ifaces_) ? nullptr : static_cast<SocketCanIface*>(ifaces_[iface_index]);
+    }
+    virtual const SocketCanIface* getIface(std::uint8_t iface_index) const
+    {
+        return (iface_index >= num_ifaces_) ? nullptr : static_cast<const SocketCanIface*>(ifaces_[iface_index]);
     }
 
     virtual std::uint8_t getNumIfaces() const { return num_ifaces_; }

@@ -7,7 +7,8 @@
 #include <uavcan/node/abstract_node.hpp>
 #include <memory>
 #include "../transport/can/can.hpp"
-
+#include <uavcan/util/method_binder.hpp>
+#include <uavcan/node/subscriber.hpp>
 
 struct TestNode : public uavcan::INode
 {
@@ -37,7 +38,8 @@ struct TestNode : public uavcan::INode
 };
 
 
-struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
+struct PairableCanDriver : public uavcan::ICanDriver
+                         , public uavcan::ICanIface
 {
     uavcan::ISystemClock& clock;
     PairableCanDriver* other;
@@ -58,6 +60,15 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
+    {
+        if (iface_index == 0)
+        {
+            return this;
+        }
+        return NULL;
+    }
+
+    virtual const uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) const
     {
         if (iface_index == 0)
         {

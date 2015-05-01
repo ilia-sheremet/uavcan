@@ -85,6 +85,11 @@ struct UAVCAN_EXPORT CanFilterConfig
 {
     uint32_t id;
     uint32_t mask;
+
+    CanFilterConfig()
+        : id(0)
+        , mask(0)
+    { }
 };
 
 /**
@@ -167,6 +172,7 @@ public:
      * Returns an interface by index, or null pointer if the index is out of range.
      */
     virtual ICanIface* getIface(uint8_t iface_index) = 0;
+    virtual const ICanIface* getIface(uint8_t iface_index) const = 0;
 
     /**
      * Total number of available CAN interfaces.
