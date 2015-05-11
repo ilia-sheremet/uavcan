@@ -9,9 +9,9 @@
 namespace uavcan
 {
 const unsigned CanAcceptanceFilterConfigurator::DefaultFilterMsgMask;
-const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceRequestId;
+const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceRequestID;
 const unsigned CanAcceptanceFilterConfigurator::DefaultFilterServiceRequestMask;
-const unsigned CanAcceptanceFilterConfigurator::ServiceRespFrameId;
+const unsigned CanAcceptanceFilterConfigurator::ServiceRespFrameID;
 const unsigned CanAcceptanceFilterConfigurator::ServiceRespFrameMask;
 
 int16_t CanAcceptanceFilterConfigurator::fillArray()
@@ -20,7 +20,7 @@ int16_t CanAcceptanceFilterConfigurator::fillArray()
     uint16_t i = 1;
 
     CanFilterConfig ServiseRespFrame;
-    ServiseRespFrame.id = ServiceRespFrameId;
+    ServiseRespFrame.id = ServiceRespFrameID;
     ServiseRespFrame.mask = ServiceRespFrameMask;
     map_configs_.insert(i, ServiseRespFrame);
     if (map_configs_.access(i) == NULL)
@@ -51,7 +51,7 @@ int16_t CanAcceptanceFilterConfigurator::fillArray()
     while (p1)
     {
         CanFilterConfig cfg;
-        cfg.id = DefaultFilterServiceRequestId;
+        cfg.id = DefaultFilterServiceRequestID;
         cfg.id |= static_cast<uint32_t>(p1->getDataTypeDescriptor().getID().get()) << 17;
         cfg.mask = DefaultFilterServiceRequestMask;
 
@@ -117,10 +117,7 @@ int16_t CanAcceptanceFilterConfigurator::computeConfiguration()
         UAVCAN_ASSERT(map_configs_.access(temp_key) == NULL);
     }
 
-    if (acceptance_filters_number < map_configs_.getSize())
-    {
-        return -ErrFailure;
-    }
+    UAVCAN_ASSERT(acceptance_filters_number >= map_configs_.getSize());
 
     return 0;
 }
@@ -142,7 +139,6 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
         if (map_configs_.getByIndex(i) == NULL)
         {
             UAVCAN_ASSERT(0);
-            handleFatalError("NULL pointer in function CanAcceptanceFilterConfigurator::applyConfiguration");
         }
 
         if ((temp_filter_config.id != 0) || (temp_filter_config.mask != 0))

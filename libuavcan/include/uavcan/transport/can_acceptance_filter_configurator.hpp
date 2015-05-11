@@ -20,27 +20,27 @@ namespace uavcan
 class CanAcceptanceFilterConfigurator
 {
     /**
-     * Below constants based on UAVCAN transport layer specification. Masks and Id's depends on message Priority,
+     * Below constants based on UAVCAN transport layer specification. Masks and ID's depends on message Priority,
      * TypeID, TransferID (RequestNotResponse - for service types, BroadcastNotUnicast - for message types).
      * For more details refer to uavcan.org/CAN_bus_transport_layer_specification.
      * For clarity let's represent "i" as Data Type ID
      * DefaultFilterMsgMask = 00111111111110000000000000000
-     * DefaultFilterMsgId   = 00iiiiiiiiiii0000000000000000, no need to explicitly define, since MsgId initialized as 0.
+     * DefaultFilterMsgID   = 00iiiiiiiiiii0000000000000000, no need to explicitly define, since MsgID initialized as 0.
      * DefaultFilterServiceRequestMask = 11111111111100000000000000000
-     * DefaultFilterServiceRequestId   = 101iiiiiiiii00000000000000000
+     * DefaultFilterServiceRequestID   = 101iiiiiiiii00000000000000000
      * ServiceRespFrameMask = 11100000000000000000000000000
-     * ServiceRespFrameId   = 10000000000000000000000000000, all Service Response Frames are accepted by HW filters.
+     * ServiceRespFrameID   = 10000000000000000000000000000, all Service Response Frames are accepted by HW filters.
      */
     static const unsigned DefaultFilterMsgMask = 0x7FF0000;
-    static const unsigned DefaultFilterServiceRequestId = 0x14000000;
+    static const unsigned DefaultFilterServiceRequestID = 0x14000000;
     static const unsigned DefaultFilterServiceRequestMask = 0x1FFE0000;
-    static const unsigned ServiceRespFrameId = 0x10000000;
+    static const unsigned ServiceRespFrameID = 0x10000000;
     static const unsigned ServiceRespFrameMask = 0x1C000000;
 
     typedef Map<uint16_t, CanFilterConfig> MapConfigArray;
 
-    CanFilterConfig mergeFilters(CanFilterConfig &a_, CanFilterConfig &b_);
-    uint8_t countBits(uint32_t n_);
+    static CanFilterConfig mergeFilters(CanFilterConfig &a_, CanFilterConfig &b_);
+    static uint8_t countBits(uint32_t n_);
     uint16_t getNumFilters() const;
 
     /**
@@ -79,7 +79,7 @@ public:
      * Returns the configuration computed with computeConfiguration().
      * If computeConfiguration() has not been called yet, an empty configuration will be returned.
      */
-    const MapConfigArray& getConfiguration()
+    const MapConfigArray& getConfiguration() const
     {
         return map_configs_;
     }
