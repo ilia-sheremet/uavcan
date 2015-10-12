@@ -69,6 +69,15 @@ target_link_libraries(test_file_server ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT
 add_executable(test_multithreading apps/test_multithreading.cpp)
 target_link_libraries(test_multithreading ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(node apps/node.cpp apps/platform_linux.cpp)
+target_link_libraries(node ${UAVCAN_LIB} rt ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable(publisher apps/publisher.cpp apps/platform_linux.cpp)
+target_link_libraries(publisher ${UAVCAN_LIB} rt)
+
+add_executable(subscriber apps/subscriber.cpp apps/platform_linux.cpp)
+target_link_libraries(subscriber ${UAVCAN_LIB} rt)
+
 #
 # Tools
 #
