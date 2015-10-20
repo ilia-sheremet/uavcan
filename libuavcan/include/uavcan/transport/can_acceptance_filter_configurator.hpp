@@ -16,13 +16,14 @@
 
 namespace uavcan
 {
-/**
+/** TODO - check everywhere description of configureFilters
  * This class configures hardware acceptance filters (if this feature is present on the particular CAN driver) to
  * preclude reception of irrelevant CAN frames on the hardware level.
  *
  * Configuration starts by creating an object of class @ref CanAcceptanceFilterConfigurator on the stack.
- * Through the method configureFilters() it determines the number of available HW filters and the number
- * of listeners. In case the number of listeners is higher than the number of available HW filters, the function
+ * Through the method computeConfiguration() it determines the number of available HW filters and the number
+ * of listeners. In case if additional configuration required, you can add by means of addFilterConfig(). TODO FINISH FROM HERE
+ * In case the number of listeners is higher than the number of available HW filters, the function
  * automatically merges configs in the most efficient way until their number is reduced to the number of
  * available HW filters. Subsequently obtained configurations are then loaded into the CAN driver.
  *
@@ -57,7 +58,7 @@ private:
      * HW filters.
      * DefaultAnonMsgMask = 00000 00000000 00000000 11111111
      * DefaultAnonMsgID   = 00000 00000000 00000000 00000000, by default the config is added to accept all anonymous
-     * frames. In case there are no anonymous messages, invoke configureFilters(IgnoreAnonymousMessages).
+     * frames. In case there are no anonymous messages, invoke computeConfiguration(IgnoreAnonymousMessages).
      */
     static const unsigned DefaultFilterMsgMask = 0xFFFF80;
     static const unsigned DefaultFilterServiceMask = 0x7F80;
@@ -72,7 +73,7 @@ private:
     uint16_t getNumFilters() const;
 
     /**
-     * Fills the multiset_configs_ to proceed it with computeConfiguration()
+     * Fills the multiset_configs_ to proceed it with mergeConfigurations()
      */
     int16_t loadInputConfiguration(AnonymousMessages load_mode);
 
@@ -80,12 +81,7 @@ private:
      * This method merges several listeners's filter configurations by predetermined algorithm
      * if number of available hardware acceptance filters less than number of listeners
      */
-    int16_t computeConfiguration();
-
-    /**
-     * This method loads the configuration computed with computeConfiguration() to the CAN driver.
-     */
-    int16_t applyConfiguration();
+    int16_t mergeConfigurations();
 
     INode& node_;               //< Node reference is needed for access to ICanDriver and Dispatcher
     MultisetConfigContainer multiset_configs_;
@@ -97,18 +93,29 @@ public:
     { }
 
     /**
-     * This method invokes loadInputConfiguration(), computeConfiguration() and applyConfiguration() consequently, so
+     * This method invokes loadInputConfiguration() and mergeConfigurations() consequently, so
      * that optimal acceptance filter configuration will be computed and loaded through CanDriver::configureFilters()
      *
      * @param mode Either: AcceptAnonymousMessages - the filters will accept all anonymous messages (this is default)
      *                     IgnoreAnonymousMessages - anonymous messages will be ignored
      * @return 0 = success, negative for error.
      */
-    int configureFilters(AnonymousMessages mode = AcceptAnonymousMessages);
+    int computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
 
     /**
-     * Returns the configuration computed with computeConfiguration().
-     * If computeConfiguration() has not been called yet, an empty configuration will be returned.
+     * Add the additional filter configuration to multiset_configs_. This method should be invoked only before
+     * computeConfiguration() member.
+     */
+    int16_t addFilterConfig(const CanFilterConfig& config);
+
+    /**
+     * This method loads the configuration computed with mergeConfigurations() and addFilterConfig() to the CAN driver.
+     */
+    int16_t applyConfiguration();
+
+    /**
+     * Returns the configuration computed with mergeConfigurations() or added by addFilterConfig().
+     * If mergeConfigurations() or addFilterConfig() has not been called yet, an empty configuration will be returned.
      */
     const MultisetConfigContainer& getConfiguration() const
     {
