@@ -85,11 +85,17 @@ private:
 
     INode& node_;               //< Node reference is needed for access to ICanDriver and Dispatcher
     MultisetConfigContainer multiset_configs_;
+    uint16_t filters_number_;
 
 public:
-    explicit CanAcceptanceFilterConfigurator(INode& node)
+//    explicit CanAcceptanceFilterConfigurator(INode& node)
+//        : node_(node)
+//        , multiset_configs_(node.getAllocator())
+//    { }
+    explicit CanAcceptanceFilterConfigurator(INode& node, uint16_t filters_number = 0)
         : node_(node)
         , multiset_configs_(node.getAllocator())
+        , filters_number_(filters_number)
     { }
 
     /**
@@ -100,7 +106,7 @@ public:
      *                     IgnoreAnonymousMessages - anonymous messages will be ignored
      * @return 0 = success, negative for error.
      */
-    int computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
+    uint16_t computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
 
     /**
      * Add the additional filter configuration to multiset_configs_. This method should be invoked only before

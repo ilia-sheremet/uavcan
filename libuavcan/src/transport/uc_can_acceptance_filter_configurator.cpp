@@ -16,24 +16,22 @@ const unsigned CanAcceptanceFilterConfigurator::DefaultAnonMsgID;
 
 int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessages load_mode)
 {
-    //multiset_configs_.clear(); // DELETE?
-
     if (load_mode == AcceptAnonymousMessages)
     {
         CanFilterConfig anon_frame_cfg;
-        anon_frame_cfg.id = DefaultAnonMsgID;
-        anon_frame_cfg.mask = DefaultAnonMsgMask;
+        anon_frame_cfg.id = DefaultAnonMsgID | CanFrame::FlagEFF;
+        anon_frame_cfg.mask = DefaultAnonMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
         if (multiset_configs_.emplace(anon_frame_cfg) == NULL)
         {
             return -ErrMemory;
         }
     }
 
-    CanFilterConfig service_resp_cfg;
-    service_resp_cfg.id = DefaultFilterServiceID;
-    service_resp_cfg.id |= static_cast<uint32_t>(node_.getNodeID().get()) << 8;
-    service_resp_cfg.mask = DefaultFilterServiceMask;
-    if (multiset_configs_.emplace(service_resp_cfg) == NULL)
+    CanFilterConfig service_cfg;
+    service_cfg.id = DefaultFilterServiceID;
+    service_cfg.id |= (static_cast<uint32_t>(node_.getNodeID().get()) << 8) | CanFrame::FlagEFF;
+    service_cfg.mask = DefaultFilterServiceMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
+    if (multiset_configs_.emplace(service_cfg) == NULL)
     {
         return -ErrMemory;
     }
@@ -42,8 +40,8 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
     while (p)
     {
         CanFilterConfig cfg;
-        cfg.id = static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8;
-        cfg.mask = DefaultFilterMsgMask;
+        cfg.id = (static_cast<uint32_t>(p->getDataTypeDescriptor().getID().get()) << 8) | CanFrame::FlagEFF;
+        cfg.mask = DefaultFilterMsgMask | CanFrame::FlagEFF | CanFrame::FlagRTR | CanFrame::FlagERR;
         if (multiset_configs_.emplace(cfg) == NULL)
         {
             return -ErrMemory;
@@ -115,7 +113,21 @@ int16_t CanAcceptanceFilterConfigurator::mergeConfigurations()
 int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
 {
     CanFilterConfig filter_conf_array[MaxCanAcceptanceFilters];
-    const unsigned int filter_array_size = multiset_configs_.getSize();
+    unsigned int filter_array_size = multiset_configs_.getSize();
+
+    const uint16_t acceptance_filters_number = getNumFilters();
+    if (acceptance_filters_number == 0)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilter", "No HW filters available");
+        return -ErrDriver;
+    }
+
+    if (filter_array_size > acceptance_filters_number)
+    {
+        UAVCAN_TRACE("CanAcceptanceFilter", "Too many filter configurations. Executing computeConfiguration()");
+        computeConfiguration(IgnoreAnonymousMessages);
+        filter_array_size = multiset_configs_.getSize();
+    }
 
     if (filter_array_size > MaxCanAcceptanceFilters)
     {
@@ -152,7 +164,7 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
     return 0;
 }
 
-int CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode)
+uint16_t CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode)
 {
     if (getNumFilters() == 0)
     {
@@ -174,19 +186,15 @@ int CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode
         return merge_configurations_error;
     }
 
-//    if (applyConfiguration() != 0)
-//    {
-//        UAVCAN_TRACE("CanAcceptanceFilter", "Failed to apply HW filter configuration");
-//        return -ErrDriver;
-//    }
-
     return 0;
 }
 
 uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
 {
+	if (filters_number_ == 0)
+	{
     static const uint16_t InvalidOut = 0xFFFF;
-    uint16_t out = InvalidOut;
+        uint16_t out = InvalidOut;
     ICanDriver& can_driver = node_.getDispatcher().getCanIOManager().getCanDriver();
 
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
@@ -207,6 +215,11 @@ uint16_t CanAcceptanceFilterConfigurator::getNumFilters() const
     }
 
     return (out == InvalidOut) ? 0 : out;
+	}
+	else
+	{
+		return filters_number_;
+	}
 }
 
 int16_t CanAcceptanceFilterConfigurator::addFilterConfig(const CanFilterConfig& config)

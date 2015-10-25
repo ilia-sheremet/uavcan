@@ -20,17 +20,23 @@ static Node& getNode()
     return node;
 }
 
+/*
+ * This file will only constantly send the messages and service requests to subscriber_server node. It will help
+ * to better understand how the Hardware Acceptance Filters work and how to properly setup them using UAVCAN library.
+ */
 int main(int argc, const char** argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cerr << "Usage: " << argv[0] << " <node-id>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <node-id> <server-node-id>" << std::endl;
         return 1;
     }
 
+    /*
+     * Initializing a new node. Refer to the "Node initialization and startup" tutorial for more details.
+     */
     const int self_node_id = std::stoi(argv[1]);
-
-    ///////////////////////
+    const uavcan::NodeID server_node_id = std::stoi(argv[2]);
     auto& node = getNode();
     node.setNodeID(self_node_id);
     node.setName("org.uavcan.tutorial.publisher");
@@ -40,7 +46,9 @@ int main(int argc, const char** argv)
         throw std::runtime_error("Failed to start the node; error: " + std::to_string(node_start_res));
     }
 
-    ////////////////////////
+    /*
+     * Initializing publishers. Please refer to the "Publishers and subscribers" tutorial for more details.
+     */
     uavcan::Publisher<uavcan::equipment::air_data::Sideslip> sideslip_pub(node);
     const int sideslip_pub_init_res = sideslip_pub.init();
     if (sideslip_pub_init_res < 0)
@@ -48,7 +56,6 @@ int main(int argc, const char** argv)
     	throw std::runtime_error("Failed to start the publisher; error: " + std::to_string(sideslip_pub_init_res));
     }
 
-    ////////////////////////
     uavcan::Publisher<uavcan::equipment::air_data::TrueAirspeed> airspeed_pub(node);
     const int airspeed_pub_init_res = airspeed_pub.init();
     if (airspeed_pub_init_res < 0)
@@ -56,26 +63,39 @@ int main(int argc, const char** argv)
     	throw std::runtime_error("Failed to start the publisher; error: " + std::to_string(airspeed_pub_init_res));
     }
 
-    ////////////////////////
+    /*
+     * Initializing service client. Please refer to the "Services" tutorial for more details.
+     */
     using uavcan::protocol::file::BeginFirmwareUpdate;
-    uavcan::ServiceServer<BeginFirmwareUpdate> srv(node);
-    const int srv_start_res = srv.start(
-       [&](const uavcan::ReceivedDataStructure<BeginFirmwareUpdate::Request>& req, BeginFirmwareUpdate::Response& rsp)
-       {
-           std::cout << req << std::endl;
-           rsp.error = rsp.ERROR_UNKNOWN;
-           rsp.optional_error_message = "I am filtered";
-       });
-    if (srv_start_res < 0)
+    uavcan::ServiceClient<BeginFirmwareUpdate> client(node);
+    const int client_init_res = client.init();
+    if (client_init_res < 0)
     {
-    	throw std::runtime_error("Failed to start the server; error: " + std::to_string(srv_start_res));
+        throw std::runtime_error("Failed to init the client; error: " + std::to_string(client_init_res));
     }
+    client.setCallback([](const uavcan::ServiceCallResult<BeginFirmwareUpdate>& call_result)
+        {
+            if (call_result.isSuccessful())  // Whether the call was successful, i.e. whether the response was received
+            {
+                // The result can be directly streamed; the output will be formatted in human-readable YAML.
+                std::cout << call_result << std::endl;
+            }
+            else
+            {
+                std::cerr << "Service call to node "
+                          << static_cast<int>(call_result.getCallID().server_node_id.get())
+                          << " has failed" << std::endl;
+            }
+        });
+    client.setRequestTimeout(uavcan::MonotonicDuration::fromMSec(200));
 
     node.setModeOperational(); //TODO ask what are the differences? Just status that doesn't do anything?
 
     while (true)
     {
-
+    	/*
+    	 * Constantly publishing messages and sending requests to a server.
+    	 */
         const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(1000));
         if (spin_res < 0)
         {
@@ -98,6 +118,14 @@ int main(int argc, const char** argv)
         if (airspd_msg_pub_res < 0)
         {
             std::cerr << "KV publication failure: " << airspd_msg_pub_res << std::endl;
+        }
+
+        BeginFirmwareUpdate::Request request;
+        request.image_file_remote_path.path = "/foo/bar";
+        const int call_res = client.call(server_node_id, request);
+        if (call_res < 0)
+        {
+            throw std::runtime_error("Unable to perform service call: " + std::to_string(call_res));
         }
 
     }
