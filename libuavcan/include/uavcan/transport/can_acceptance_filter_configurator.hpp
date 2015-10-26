@@ -106,7 +106,7 @@ public:
      *                     IgnoreAnonymousMessages - anonymous messages will be ignored
      * @return 0 = success, negative for error.
      */
-    uint16_t computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
+    int computeConfiguration(AnonymousMessages mode = AcceptAnonymousMessages);
 
     /**
      * Add the additional filter configuration to multiset_configs_. This method should be invoked only before

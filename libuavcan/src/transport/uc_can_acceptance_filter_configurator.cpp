@@ -164,7 +164,7 @@ int16_t CanAcceptanceFilterConfigurator::applyConfiguration(void)
     return 0;
 }
 
-uint16_t CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode)
+int CanAcceptanceFilterConfigurator::computeConfiguration(AnonymousMessages mode)
 {
     if (getNumFilters() == 0)
     {
