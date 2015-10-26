@@ -57,10 +57,10 @@ int16_t CanAcceptanceFilterConfigurator::loadInputConfiguration(AnonymousMessage
 #if UAVCAN_DEBUG
     for (uint16_t i = 0; i < multiset_configs_.getSize(); i++)
     {
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.ID [%u] = %d", i,
-                     multiset_configs_.getByIndex(i)->id);
-        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.MK [%u] = %d", i,
-                     multiset_configs_.getByIndex(i)->mask);
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.ID [%u] = %u", i,
+                     multiset_configs_.getByIndex(i)->id & CanFrame::MaskExtID);
+        UAVCAN_TRACE("CanAcceptanceFilterConfigurator::loadInputConfiguration()", "cfg.MK [%u] = %u", i,
+                     multiset_configs_.getByIndex(i)->mask & CanFrame::MaskExtID);
     }
 #endif
 
