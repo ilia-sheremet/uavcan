@@ -136,8 +136,8 @@ TEST(CanAcceptanceFilter, Basic_test)
     const auto& configure_array = anon_test_configuration.getConfiguration();
     uint32_t configure_array_size = configure_array.getSize();
 
-    ASSERT_EQ(configure_filters_assert, 0);
-    ASSERT_EQ(configure_array_size, 4);
+    ASSERT_EQ(0, configure_filters_assert);
+    ASSERT_EQ(4, configure_array_size);
 
     for (uint16_t i = 0; i<configure_array_size; i++)
     {
@@ -145,15 +145,14 @@ TEST(CanAcceptanceFilter, Basic_test)
         std::cout << "config.MK [" << i << "]= " << configure_array.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array.getByIndex(0)->id, 256000);
-    ASSERT_EQ(configure_array.getByIndex(0)->mask, 16771968);
-    ASSERT_EQ(configure_array.getByIndex(1)->id, 0);
-    ASSERT_EQ(configure_array.getByIndex(1)->mask, 255);
-    ASSERT_EQ(configure_array.getByIndex(2)->id, 6272);
-    ASSERT_EQ(configure_array.getByIndex(2)->mask, 32640);
-    ASSERT_EQ(configure_array.getByIndex(3)->id, 262144);
-    ASSERT_EQ(configure_array.getByIndex(3)->mask, 16771200);
-
+    ASSERT_EQ(256000,   configure_array.getByIndex(0)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(16771968, configure_array.getByIndex(0)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(0,        configure_array.getByIndex(1)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(255,      configure_array.getByIndex(1)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(6272,     configure_array.getByIndex(2)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(32640,    configure_array.getByIndex(2)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(262144,   configure_array.getByIndex(3)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(16771200, configure_array.getByIndex(3)->mask & uavcan::CanFrame::MaskExtID);
 
     uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
     configure_filters_assert = no_anon_test_confiruration.computeConfiguration
@@ -165,8 +164,8 @@ TEST(CanAcceptanceFilter, Basic_test)
     const auto& configure_array_2 = no_anon_test_confiruration.getConfiguration();
     configure_array_size = configure_array_2.getSize();
 
-    ASSERT_EQ(configure_filters_assert, 0);
-    ASSERT_EQ(configure_array_size, 4);
+    ASSERT_EQ(0, configure_filters_assert);
+    ASSERT_EQ(4, configure_array_size);
 
     for (uint16_t i = 0; i<configure_array_size; i++)
     {
@@ -174,13 +173,13 @@ TEST(CanAcceptanceFilter, Basic_test)
         std::cout << "config.MK [" << i << "]= " << configure_array_2.getByIndex(i)->mask << std::endl;
     }
 
-    ASSERT_EQ(configure_array_2.getByIndex(0)->id, 256000);
-    ASSERT_EQ(configure_array_2.getByIndex(0)->mask, 16771968);
-    ASSERT_EQ(configure_array_2.getByIndex(1)->id, 262144);
-    ASSERT_EQ(configure_array_2.getByIndex(1)->mask, 16776320);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->id, 6272);
-    ASSERT_EQ(configure_array_2.getByIndex(2)->mask, 32640);
-    ASSERT_EQ(configure_array_2.getByIndex(3)->id, 262144);
-    ASSERT_EQ(configure_array_2.getByIndex(3)->mask, 16771968);
+    ASSERT_EQ(256000,   configure_array_2.getByIndex(0)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(16771968, configure_array_2.getByIndex(0)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(262144,   configure_array_2.getByIndex(1)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(16776320, configure_array_2.getByIndex(1)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(6272,     configure_array_2.getByIndex(2)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(32640,    configure_array_2.getByIndex(2)->mask & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(262144,   configure_array_2.getByIndex(3)->id   & uavcan::CanFrame::MaskExtID);
+    ASSERT_EQ(16771968, configure_array_2.getByIndex(3)->mask & uavcan::CanFrame::MaskExtID);
 }
 #endif
