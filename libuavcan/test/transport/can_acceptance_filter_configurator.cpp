@@ -127,7 +127,7 @@ TEST(CanAcceptanceFilter, Basic_test)
 
 
     uavcan::CanAcceptanceFilterConfigurator anon_test_configuration(node);
-    int configure_filters_assert = anon_test_configuration.configureFilters();
+    int configure_filters_assert = anon_test_configuration.computeConfiguration();
     if (configure_filters_assert == 0)
     {
         std::cout << "Filters are configured with anonymous configuration..." << std::endl;
@@ -156,7 +156,7 @@ TEST(CanAcceptanceFilter, Basic_test)
 
 
     uavcan::CanAcceptanceFilterConfigurator no_anon_test_confiruration(node);
-    configure_filters_assert = no_anon_test_confiruration.configureFilters
+    configure_filters_assert = no_anon_test_confiruration.computeConfiguration
                                    (uavcan::CanAcceptanceFilterConfigurator::IgnoreAnonymousMessages);
     if (configure_filters_assert == 0)
     {
